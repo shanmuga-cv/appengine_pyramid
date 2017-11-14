@@ -21,3 +21,27 @@ def query_autocomplete():
     return jsonify([r['product_name'] for r in resuls_dict])
 
 
+#####
+from google.cloud import datastore
+from itertools import islice
+import json
+datastore_client = datastore.Client()
+datastore_results = [x for x in islice(datastore_client.query(kind='products').fetch(), 0, 100)]
+def datastore_to_search(dr):
+    fields = []
+    if dr['product_name']:
+        fields.append(search.TextField(name='product_name', value=dr['product_name']))
+    if dr['product_link']:
+        fields.append(search.TextField(name='product_link', value=dr['product_link']))
+    if dr['product_price']:
+        fields.append(search.NumberField(name='product_price', value=dr['product_price']))
+    if dr['price_symbol']:
+        fields.append(search.AtomField(name='price_symbol', value=dr['price_symbol']))
+    return search.Document(doc_id=str(dr.key.id), fields=fields)
+
+for dr in datastore_results:
+    idx.put(datastore_to_search(dr))
+
+print('inserted')
+
+# in case of ChunkedEncodingError apply patch https://stackoverflow.com/a/37181539
