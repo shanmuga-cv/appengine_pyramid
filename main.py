@@ -37,11 +37,15 @@ def datastore_to_search(dr):
         fields.append(search.NumberField(name='product_price', value=dr['product_price']))
     if dr['price_symbol']:
         fields.append(search.AtomField(name='price_symbol', value=dr['price_symbol']))
-    return search.Document(doc_id=str(dr.key.id), fields=fields)
+    return search.Document(doc_id=dr['id'], fields=fields)
 
-for dr in datastore_results:
-    idx.put(datastore_to_search(dr))
-
-print('inserted')
 
 # in case of ChunkedEncodingError apply patch https://stackoverflow.com/a/37181539
+
+@app.route('/insert', methods=['POST'])
+def insert_into_search():
+    data_lst = request.get_json()
+    documents = [datastore_to_search(d) for d in data_lst]
+    results = idx.put(documents)
+    results = [ (r._code, r._id)  for r in results]
+    return jsonify(results)
